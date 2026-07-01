@@ -1,0 +1,48 @@
+name: Translation help (翻译)
+description: Offer to translate the course into another language, claim a module, or flag a translation to check.
+title: "[i18n] "
+labels: ["translation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Translations are very welcome — **Chinese (中文) especially**, and any other language.
+        You can translate a module, review/check an existing translation, or report a translation
+        error. See the **Translations** section of
+        [CONTRIBUTING.md](https://github.com/jiahongsigma/Efficient-LLM-Inference-Serving-Systems/blob/main/CONTRIBUTING.md).
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      placeholder: "简体中文 (Chinese, Simplified)   ·   or: Spanish, Japanese, Hindi, …"
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What would you like to do?
+      options:
+        - Translate (I'll claim a module / section)
+        - Review / check an existing translation
+        - Report a translation error
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Which module(s) / section(s)?
+      placeholder: "e.g. Module 00–02, or the README, or Appendix B"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes (optional)
+      description: For an error report, paste the original text and your suggested fix. For an offer, anything we should know.
+  - type: checkboxes
+    id: conventions
+    attributes:
+      label: Conventions
+      options:
+        - label: "I'll translate prose only — keeping code, file names, math, and technical identifiers in English"
+        - label: "I'll mirror the English structure (one file per module, same §N.x numbering)"

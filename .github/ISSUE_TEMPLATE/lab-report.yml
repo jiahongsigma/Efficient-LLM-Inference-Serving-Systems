@@ -1,0 +1,92 @@
+name: Lab report
+description: Report running one of the labs on a real GPU — a success, a fix, or a failure.
+title: "[lab] "
+labels: ["lab-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for running a lab on your own setup — the most valuable contribution to the repo. We're
+        curious how the labs behave across different environments, so all outcomes are useful.
+
+        **First:** run `python infra/smoke.py --model <id>` against your server. If *that* fails,
+        it's the wiring, not the lab — see
+        [CONTRIBUTING.md](https://github.com/jiahongsigma/Efficient-LLM-Inference-Serving-Systems/blob/main/CONTRIBUTING.md).
+  - type: dropdown
+    id: lab
+    attributes:
+      label: Which lab?
+      options:
+        - m00_numerics
+        - m01_roofline
+        - m02_kvcache
+        - m03_quantization
+        - m04_batching
+        - m05_paging
+        - m06_parallelism
+        - m07_longcontext
+        - m08_speculative
+        - m09_structured
+        - m10_agentic
+        - m11_gateway
+        - m12_methodology
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Outcome
+      options:
+        - Worked as expected
+        - Worked, but I had to fix something
+        - Failed / crashed
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU & provider
+      placeholder: "RunPod RTX 4090 (24 GB)"
+    validations:
+      required: true
+  - type: input
+    id: engine
+    attributes:
+      label: Engine & version
+      placeholder: "vLLM 0.6.3   (or: SGLang 0.4.x)"
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model id (exactly as served)
+      placeholder: "meta-llama/Llama-3.1-8B-Instruct"
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command(s)
+      description: Ideally the `infra/serve_and_run.sh` invocation (serve flags + lab args).
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What happened
+      description: For a success, the key numbers / a plot. For a failure, the full traceback (paste it in a code block).
+    validations:
+      required: true
+  - type: textarea
+    id: fix
+    attributes:
+      label: Fix or diff (optional)
+      description: If you changed anything to make it work, paste the diff or describe it. A pull request is even better.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Sanity checks
+      options:
+        - label: "`python infra/smoke.py` passed against my server first"
+        - label: "I'm on the latest `main`"

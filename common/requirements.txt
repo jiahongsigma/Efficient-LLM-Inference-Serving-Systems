@@ -1,0 +1,7 @@
+# common/ harness runtime deps
+httpx>=0.27        # async OpenAI-compatible streaming client (real endpoints)
+numpy>=1.24        # schedules, percentiles, RNG
+jsonschema>=4.0    # optional: score_json_schema (a minimal fallback validator is built in)
+
+# dev / tests
+pytest>=7.0

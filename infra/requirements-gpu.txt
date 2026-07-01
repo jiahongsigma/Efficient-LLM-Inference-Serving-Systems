@@ -1,0 +1,15 @@
+# Install on the rented GPU box: the serving engine + the harness deps.
+#   pip install -r infra/requirements-gpu.txt
+
+vllm>=0.6            # the serving engine (pulls torch, CUDA wheels, etc.)
+# sglang[all]>=0.4   # alternative engine; needed for parts of M9 (structured) and M11 (gateway)
+
+# --- the common/ harness (same as common/requirements.txt) ---
+httpx>=0.27          # async OpenAI-compatible client
+numpy>=1.24
+jsonschema>=4.0      # score_json_schema (M9)
+matplotlib>=3.5      # lab plots (optional but recommended for the recordings)
+
+# M11 gateway only:
+# fastapi>=0.110
+# uvicorn>=0.29
