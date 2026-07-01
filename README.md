@@ -1,32 +1,21 @@
-# Efficient LLM Inference & Serving Systems - Jdai Lab Course
+# Efficient LLM Inference & Serving Systems
 
-A hands-on, systems-oriented course on how large language models are actually run in production: why inference is hard, which techniques exist, why each one works, and how to measure whether it helped. The emphasis is on first principles and measurement, not framework tutorials. Every claim is something you reproduce on open models and public benchmarks.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![Engines](https://img.shields.io/badge/engines-vLLM%20%7C%20SGLang-orange.svg) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
----
-
-## Audience and prerequisites
-
-Designed for rusty human individuals in the crazy evovling AI rat race and looking for self-hosting LLM models in their own bunker.
-
-**Assumed for the main path:** comfort with Python and Linux; basic deep-learning literacy; computer-architecture fundamentals — memory hierarchy, bandwidth vs latency, the **roofline model**; basic probability.
-
-**Assumed only for specific "Going Deeper" appendices** (each flags this, and the main path never depends on them): numerical analysis (M0 error analysis), convex/quadratic optimization (M3 OBQ/GPTQ), queueing theory (M4 derivations), and deeper computer architecture (the hardware appendix). The heavy mathematics is deliberately quarantined in appendices so the critical path stays teachable to a mixed cohort.
+A hands-on, first-principles course on how LLMs are actually served in production — from the roofline up to vLLM & SGLang, with GPU labs on open models and every result reproducible.
 
 ---
 
-## Course structure: two tiers
+## Why generating text barely uses your GPU
 
-Every module has a **Main** thread — the derivations and labs a cohort must follow — and **most also have a Going Deeper** section (or linked appendix) with the heavier theory, proofs, and hardware detail for those who want it. A reader can complete the course on the Main thread alone; the appendices reward the PhD appetite without making the main line unteachable. Throughout, we **go deep on the durable things (the physics, the math, the architecture) and stay deliberately shallow on what rots** (specific SOTA models, framework APIs, leaderboard numbers).
+To produce **one** token, a model reads *every* weight it has out of GPU memory — billions of numbers — and does almost no math with each. A GPU crunches numbers far faster than it can pull them from memory, so decoding isn't limited by how fast the chip computes. **It's limited by how fast it can read memory.** One sequence at a time, the expensive math units you paid for sit almost entirely idle, waiting for weights to arrive:
 
----
+```
+   math a GPU can do per byte it reads from memory   ██████████████████████████████
+   what generating one token actually uses           ▏  ← about 1 part in 300
+```
 
-## The one idea this whole course turns on
-
-Most of efficient LLM inference follows from a single quantitative fact, used as the spine so techniques are *derived*, not memorized.
-
-**Autoregressive decode is memory-bandwidth-bound.** Generating one token from a dense model with *N* parameters requires reading ≈ all *N* weights from HBM (≈ 2*N* bytes in FP16) while performing only ≈ 2*N* FLOPs — an arithmetic intensity of **≈ 1 FLOP/byte**, orders of magnitude below the ridge point of a modern accelerator (an H100 at ~990 dense BF16 TFLOPS / ~3.35 TB/s ≈ **~295 FLOP/byte**). Decode sits deep in the bandwidth-bound regime: the expensive FLOPs you paid for idle while the chip waits on memory.
-
-The rest of the course is this fact's consequences — plus, in Parts V–VI, the control, application, and operational layers any real deployment also needs:
+That single imbalance is the spine of the whole course. **Batching, KV caches, quantization, paging, parallelism, speculative decoding — almost every technique below is a different way to reclaim that idle capacity:**
 
 | The question it forces | The technique that answers it | Module |
 |---|---|---|
@@ -41,7 +30,54 @@ The rest of the course is this fact's consequences — plus, in Parts V–VI, th
 | How is any of this exposed, kept up, and depended on? | **Frameworks, API, observability, resilience** | 11 |
 | How do we *know* a change helped vs moved the bottleneck? | **Evaluation methodology** | 12 |
 
-The ridge-point numbers above come from real silicon; **Appendix A** derives where `P` and `B` come from. (Modules 9–10 are the one place the course steps past *pure* efficiency: structured decoding is about output *control*, agentic serving about *session economics* — both non-negotiable for real self-hosting, and tool-use still reconnects to the spine through Module 5's prefix reuse.) If a student leaves remembering only the spine and this table, the course succeeded.
+*Modules 9–12 add the layers a real deployment needs beyond raw efficiency — structured output, agentic serving, the API/gateway, honest benchmarking — non-negotiable for anyone self-hosting.*
+
+<details>
+<summary><b>The same idea, precisely — the roofline in numbers</b> (for readers who want the derivation)</summary>
+
+<br>
+
+Generating one token from a dense model with *N* parameters means reading ≈ all *N* weights from HBM (≈ 2*N* bytes in FP16) while doing only ≈ 2*N* FLOPs — an **arithmetic intensity of ≈ 1 FLOP/byte**. That is hundreds of times below the *ridge point* where an accelerator stops being memory-bound: an H100 does ~990 BF16 TFLOP/s over ~3.35 TB/s of bandwidth ≈ **~295 FLOP/byte**, so a lone decode stream reaches only ≈ 1/295 ≈ **0.3%** of peak compute (that's the "1 part in 300" above). Decode lives deep in the bandwidth-bound regime; **prefill** — digesting the prompt — sits on the compute-bound side, which is why the two optimize in opposite directions. The numbers are real silicon; **Appendix A** derives where peak compute *P* and bandwidth *B* come from.
+
+```
+ attainable compute (log)
+                                            ┌── peak ≈ 990 TFLOP/s (BF16)
+                              ridge ──►╱─────┴──────────────  compute-bound
+                            ≈ 295     ╱          region  →  PREFILL
+                          FLOP/byte  ╱
+                                    ╱
+                                  ╱
+                                ╱     the roofline
+                              ╱
+                            ╱       bandwidth-bound region  →  DECODE
+                          ╱
+                        ╱
+                      ╱
+      decode ●──────╱   ≈ 1 FLOP/byte  —  ~300× below the ridge:
+                        the FLOPs you paid for sit idle, waiting on HBM
+ └──────────────────────────────────────────────────────────────────►
+    arithmetic intensity  (FLOP/byte, log)      1  ····  295  ····  ∞
+```
+
+</details>
+
+> **★ Star it** if you want inference reasoned from physics instead of folklore. New labs and real-hardware numbers land as contributors run them — the star keeps this one keystroke away.
+
+---
+
+## Audience and prerequisites
+
+Designed for rusty human individuals in the crazy evolving AI rat race and looking for self-hosting LLM models in their own bunker.
+
+**Assumed for the main path:** comfort with Python and Linux; basic deep-learning literacy; computer-architecture fundamentals — memory hierarchy, bandwidth vs latency, the **roofline model**; basic probability.
+
+**Assumed only for specific "Going Deeper" appendices** (each flags this, and the main path never depends on them): numerical analysis (M0 error analysis), convex/quadratic optimization (M3 OBQ/GPTQ), queueing theory (M4 derivations), and deeper computer architecture (the hardware appendix). The heavy mathematics is deliberately quarantined in appendices so the critical path stays teachable to a mixed cohort.
+
+---
+
+## Course structure: two tiers
+
+Every module has a **Main** thread — the derivations and labs a cohort must follow — and **most also have a Going Deeper** section (or linked appendix) with the heavier theory, proofs, and hardware detail for those who want it. A reader can complete the course on the Main thread alone; the appendices reward the PhD appetite without making the main line unteachable. Throughout, we **go deep on the durable things (the physics, the math, the architecture) and stay deliberately shallow on what rots** (specific SOTA models, framework APIs, leaderboard numbers).
 
 ---
 
